@@ -744,6 +744,8 @@ XInputWireToEvent(
                         }
                         v->num_valuators += j;
 
+                    } else {
+                        return (DONT_ENQUEUE);
                     }
                     *re = *save;
                     return (ENQUEUE_EVENT);
