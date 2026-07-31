@@ -93,6 +93,7 @@ XIQueryDevice(Display *dpy, int deviceid, int *ndevices_return)
         int             wire_len;
         XIDeviceInfo    *lib = &info[i];
         xXIDeviceInfo   *wire = (xXIDeviceInfo*)ptr;
+        size_t          name_bytes;
 
         if (ptr + sizeof(xXIDeviceInfo) > end)
             goto error_loop;
@@ -104,16 +105,18 @@ XIQueryDevice(Display *dpy, int deviceid, int *ndevices_return)
         nclasses         = wire->num_classes;
 
         ptr += sizeof(xXIDeviceInfo);
+        name_bytes = ((size_t) wire->name_len + 3) / 4 * 4;
 
-        if (ptr + wire->name_len > end)
+        if (ptr + name_bytes > end)
             goto error_loop;
 
         lib->name = Xcalloc(wire->name_len + 1, 1);
         if (lib->name == NULL)
             goto error_loop;
+
         strncpy(lib->name, ptr, wire->name_len);
         lib->name[wire->name_len] = '\0';
-        ptr += ((wire->name_len + 3)/4) * 4;
+        ptr += name_bytes;
 
         sz = size_classes((xXIAnyInfo*)ptr, nclasses, end);
         if (sz < 0)
@@ -128,7 +131,7 @@ XIQueryDevice(Display *dpy, int deviceid, int *ndevices_return)
             goto error_loop;
         }
         wire_len = copy_classes(lib, (xXIAnyInfo*)ptr, &nclasses, end);
-        if (wire_len < 0)
+        if (wire_len < 0 || ptr + wire_len > end)
         {
             Xfree(lib->name);
             Xfree(lib->classes);
