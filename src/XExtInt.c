@@ -73,8 +73,8 @@ SOFTWARE.
 #define DONT_ENQUEUE	False
 #define FP1616toDBL(x) ((x) * 1.0 / (1 << 16))
 
-int copy_classes(XIDeviceInfo *to, xXIAnyInfo* from, int *nclasses);
-int size_classes(xXIAnyInfo* from, int nclasses);
+int copy_classes(XIDeviceInfo *to, xXIAnyInfo* from, int *nclasses, char *end);
+int size_classes(xXIAnyInfo* from, int nclasses, char *end);
 
 static XExtensionInfo *xinput_info;
 static const char *xinput_extension_name = INAME;
@@ -1681,8 +1681,30 @@ wireToDeviceEvent(xXIDeviceEvent *in, XGenericEventCookie* cookie)
     return 1;
 }
 
+static int
+validate_class_header(char *ptr, char *end, xXIAnyInfo **any_out)
+{
+    xXIAnyInfo *any;
+    size_t remaining;
+
+    if (ptr + sizeof(xXIAnyInfo) > end)
+        return -1;
+
+    any = (xXIAnyInfo *) ptr;
+    if (any->length == 0)
+        return -1;
+
+    remaining = (size_t) (end - ptr);
+    if ((size_t) any->length > remaining / 4)
+        return -1;
+
+    *any_out = any;
+
+    return 0;
+}
+
 _X_HIDDEN int
-size_classes(xXIAnyInfo* from, int nclasses)
+size_classes(xXIAnyInfo* from, int nclasses, char *end)
 {
     int len, i;
     xXIAnyInfo *any_wire;
@@ -1694,7 +1716,10 @@ size_classes(xXIAnyInfo* from, int nclasses)
     for (i = 0; i < nclasses; i++)
     {
         int l = 0;
-        any_wire = (xXIAnyInfo*)ptr_wire;
+
+        if (validate_class_header(ptr_wire, end, &any_wire) < 0)
+            return -1;
+
         switch(any_wire->type)
         {
             case XIButtonClass:
@@ -1735,7 +1760,7 @@ size_classes(xXIAnyInfo* from, int nclasses)
  *             |______________________^
  */
 _X_HIDDEN int
-copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses)
+copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
 {
     XIAnyClassInfo *any_lib;
     xXIAnyInfo *any_wire;
@@ -1757,7 +1782,9 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses)
     for (i = 0; i < *nclasses; i++)
     {
         any_lib = (XIAnyClassInfo*)ptr_lib;
-        any_wire = (xXIAnyInfo*)ptr_wire;
+
+        if (validate_class_header(ptr_wire, end, &any_wire) < 0)
+            return -1;
 
         switch(any_wire->type)
         {
@@ -1913,8 +1940,11 @@ wireToDeviceChangedEvent(xXIDeviceChangedEvent *in, XGenericEventCookie *cookie)
     XIDeviceInfo info;
     int len;
     int nclasses = in->num_classes;
+    char *end = (char *)in + sizeof(xEvent) + in->length * 4;
 
-    len = size_classes((xXIAnyInfo*)&in[1], in->num_classes);
+    len = size_classes((xXIAnyInfo*)&in[1], in->num_classes, end);
+    if (len < 0)
+        return 0;
 
     cookie->data = out = malloc(sizeof(XIDeviceChangedEvent) + len);
     if (!out)
@@ -1935,7 +1965,11 @@ wireToDeviceChangedEvent(xXIDeviceChangedEvent *in, XGenericEventCookie *cookie)
 
     info.classes = out->classes;
 
-    copy_classes(&info, (xXIAnyInfo*)&in[1], &nclasses);
+    if (copy_classes(&info, (xXIAnyInfo*)&in[1], &nclasses, end) < 0) {
+        free(out);
+        cookie->data = NULL;
+        return 0;
+    }
     out->num_classes = nclasses;
 
     return 1;
