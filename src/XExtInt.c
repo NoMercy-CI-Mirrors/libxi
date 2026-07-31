@@ -56,6 +56,7 @@ SOFTWARE.
 
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
@@ -1703,21 +1704,102 @@ validate_class_header(char *ptr, char *end, xXIAnyInfo **any_out)
     return 0;
 }
 
+/*
+ * Reject class records whose type-specific header or payload cannot fit in
+ * the declared wire length (length is in 4-byte units).
+ */
+static int
+validate_class_payload(xXIAnyInfo *any)
+{
+    size_t cls_len = (size_t) any->length * 4;
+
+    switch (any->type) {
+    case XIButtonClass:
+        {
+            xXIButtonInfo *b = (xXIButtonInfo *) any;
+            size_t mask_size, labels_size, need;
+
+            if (cls_len < sizeof(xXIButtonInfo))
+                return -1;
+
+            mask_size = ((size_t) b->num_buttons + 7) / 8;
+            mask_size = (mask_size + 3) / 4 * 4;
+            if (b->num_buttons >
+                (SIZE_MAX - sizeof(xXIButtonInfo) - mask_size) / 4)
+                return -1;
+
+            labels_size = (size_t) b->num_buttons * 4;
+            need = sizeof(xXIButtonInfo) + mask_size + labels_size;
+            if (need > cls_len)
+                return -1;
+
+            break;
+        }
+    case XIKeyClass:
+        {
+            xXIKeyInfo *k = (xXIKeyInfo *) any;
+
+            if (cls_len < sizeof(xXIKeyInfo))
+                return -1;
+
+            /* copy_classes reads num_keycodes bytes from the wire */
+            if ((size_t) k->num_keycodes > (cls_len - sizeof(xXIKeyInfo)) / 4)
+                return -1;
+
+            break;
+        }
+    case XIValuatorClass:
+        if (cls_len < sizeof(xXIValuatorInfo))
+            return -1;
+        break;
+    case XIScrollClass:
+        if (cls_len < sizeof(xXIScrollInfo))
+            return -1;
+        break;
+    case XITouchClass:
+        if (cls_len < sizeof(xXITouchInfo))
+            return -1;
+        break;
+    case XIGestureClass:
+        if (cls_len < sizeof(xXIGestureInfo))
+            return -1;
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
 _X_HIDDEN int
 size_classes(xXIAnyInfo* from, int nclasses, char *end)
 {
-    int len, i;
+    size_t len;
+    size_t ptr_bytes;
+    int i;
     xXIAnyInfo *any_wire;
     char *ptr_wire;
 
+    if (nclasses < 0)
+        return -1;
+    if ((size_t) nclasses > SIZE_MAX / sizeof(XIAnyClassInfo *))
+        return -1;
+
+    ptr_bytes = (size_t) nclasses * sizeof(XIAnyClassInfo *);
+    if (ptr_bytes > (size_t) INT_MAX)
+        return -1;
+
     /* len for to->classes */
-    len = pad_to_double(nclasses * sizeof(XIAnyClassInfo*));
+    len = (size_t) pad_to_double((int) ptr_bytes);
     ptr_wire = (char*)from;
     for (i = 0; i < nclasses; i++)
     {
         int l = 0;
 
         if (validate_class_header(ptr_wire, end, &any_wire) < 0)
+            return -1;
+
+        if (validate_class_payload(any_wire) < 0)
             return -1;
 
         switch(any_wire->type)
@@ -1744,11 +1826,15 @@ size_classes(xXIAnyInfo* from, int nclasses, char *end)
                 break;
         }
 
-        len += l;
+        if (l < 0 || len > SIZE_MAX - (size_t) l)
+            return -1;
+        len += (size_t) l;
         ptr_wire += any_wire->length * 4;
     }
 
-    return len;
+    if (len > (size_t) INT_MAX)
+        return -1;
+    return (int) len;
 }
 
 #define FP3232_TO_DOUBLE(x) ((double) (x).integral + (double) (x).frac / (1ULL << 32))
@@ -1784,6 +1870,9 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
         any_lib = (XIAnyClassInfo*)ptr_lib;
 
         if (validate_class_header(ptr_wire, end, &any_wire) < 0)
+            return -1;
+
+        if (validate_class_payload(any_wire) < 0)
             return -1;
 
         switch(any_wire->type)
@@ -1940,10 +2029,10 @@ wireToDeviceChangedEvent(xXIDeviceChangedEvent *in, XGenericEventCookie *cookie)
     XIDeviceInfo info;
     int len;
     int nclasses = in->num_classes;
-    char *end = (char *)in + sizeof(xEvent) + in->length * 4;
+    char *end = (char *)in + sizeof(xXIDeviceChangedEvent) + in->length * 4;
 
     len = size_classes((xXIAnyInfo*)&in[1], in->num_classes, end);
-    if (len < 0)
+    if (len < 0 || (size_t)len > SIZE_MAX - sizeof(XIDeviceChangedEvent))
         return 0;
 
     cookie->data = out = malloc(sizeof(XIDeviceChangedEvent) + len);
