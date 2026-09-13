@@ -46,7 +46,7 @@ SOFTWARE.
 
 /***********************************************************************
  *
- * XListInputDevices - Request the server to return a list of 
+ * XListInputDevices - Request the server to return a list of
  *			 available input devices.
  *
  */

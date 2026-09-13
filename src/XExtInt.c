@@ -504,7 +504,7 @@ XInputWireToEvent(
     type = event->u.u.type & 0x7f;
     reltype = (type - info->codes->first_event);
 
-    if (type == GenericEvent || 
+    if (type == GenericEvent ||
         (reltype != XI_DeviceValuator &&
 	reltype != XI_DeviceKeystateNotify &&
 	reltype != XI_DeviceButtonstateNotify)) {
