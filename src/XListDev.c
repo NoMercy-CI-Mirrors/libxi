@@ -245,6 +245,9 @@ XListInputDevices(
 	}
 	_XRead(dpy, (char *)list, rlen);
 
+	if (rlen < (unsigned long)ndevices * sizeof(xDeviceInfo))
+	    goto out;
+
 	any = (xAnyClassPtr) ((char *)list + (ndevices * sizeof(xDeviceInfo)));
 	sav_any = any;
 	end = (char *)list + rlen;
