@@ -740,6 +740,9 @@ XInputWireToEvent(
                         j = xev->num_valuators;
                         if (j > 3)
                             j = 3;
+                        /* valuators[] holds 6 entries */
+                        if (i >= 6 || j > 6 - i)
+                            return (DONT_ENQUEUE);
                         switch (j) {
                             case 3:
                                 v->valuators[i + 2] = xev->valuator2;
@@ -807,11 +810,11 @@ XInputWireToEvent(
 
                         vev->class = ValuatorClass;
                         vev->length = sizeof(XValuatorStatus);
-                        vev->num_valuators = sev->num_valuators;
                         vev->mode = sev->classes_reported >> ModeBitsShift;
                         j = sev->num_valuators;
                         if (j > 3)
                             j = 3;
+                        vev->num_valuators = j;
                         switch (j) {
                             case 3:
                                 vev->valuators[2] = sev->valuator2;
