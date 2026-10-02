@@ -2033,7 +2033,7 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
                     xXITouchInfo *cls_wire;
 
                     cls_wire = (xXITouchInfo*)any_wire;
-                    cls_lib = next_block(&ptr_lib, sizeof(XITouchClassInfo));
+                    cls_lib = next_block(&ptr_lib, sizeDeviceClassType(XITouchClass, 0));
 
                     cls_lib->type = cls_wire->type;
                     cls_lib->sourceid = cls_wire->sourceid;
@@ -2049,7 +2049,7 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
                     xXIGestureInfo *cls_wire;
 
                     cls_wire = (xXIGestureInfo*)any_wire;
-                    cls_lib = next_block(&ptr_lib, sizeof(XIGestureClassInfo));
+                    cls_lib = next_block(&ptr_lib, sizeDeviceClassType(XIGestureClass, 0));
 
                     cls_lib->type = cls_wire->type;
                     cls_lib->sourceid = cls_wire->sourceid;
