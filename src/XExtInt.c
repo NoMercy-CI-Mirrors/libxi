@@ -1966,6 +1966,10 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
                     int keycodes_size;
 
                     cls_wire = (xXIKeyInfo*)any_wire;
+                    if (any_wire->length * 4 < sizeof(xXIKeyInfo) ||
+                        (size_t)cls_wire->num_keycodes * sizeof(CARD32) >
+                        any_wire->length * 4 - sizeof(xXIKeyInfo))
+                        break;
                     sizeXIKeyClassType(cls_wire->num_keycodes,
                                        &struct_size, &keycodes_size);
                     cls_lib = next_block(&ptr_lib, struct_size);
@@ -1975,7 +1979,7 @@ copy_classes(XIDeviceInfo* to, xXIAnyInfo* from, int *nclasses, char *end)
                     cls_lib->num_keycodes = cls_wire->num_keycodes;
                     cls_lib->keycodes = next_block(&ptr_lib, keycodes_size);
                     memcpy(cls_lib->keycodes, &cls_wire[1],
-                            cls_lib->num_keycodes);
+                           cls_wire->num_keycodes * sizeof(CARD32));
 
                     to->classes[cls_idx++] = any_lib;
                     break;
