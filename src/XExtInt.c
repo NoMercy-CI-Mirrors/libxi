@@ -1289,6 +1289,12 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
             case XIScrollClass:
                 len += sizeDeviceClassType(XIScrollClass, 0);
                 break;
+            case XITouchClass:
+                len += sizeDeviceClassType(XITouchClass, 0);
+                break;
+            case XIGestureClass:
+                len += sizeDeviceClassType(XIGestureClass, 0);
+                break;
             default:
                 printf("copyDeviceChangedEvent: unknown type %d\n",
                         any->type);
@@ -1367,6 +1373,26 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                                       sizeDeviceClassType(XIScrollClass, 0));
                     *sout = *sin;
                     out->classes[i] = (XIAnyClassInfo*)sout;
+                    break;
+                }
+            case XITouchClass:
+                {
+                    XITouchClassInfo *tin, *tout;
+                    tin = (XITouchClassInfo*)any;
+                    tout = next_block(&ptr,
+                                      sizeDeviceClassType(XITouchClass, 0));
+                    *tout = *tin;
+                    out->classes[i] = (XIAnyClassInfo*)tout;
+                    break;
+                }
+            case XIGestureClass:
+                {
+                    XIGestureClassInfo *gin, *gout;
+                    gin = (XIGestureClassInfo*)any;
+                    gout = next_block(&ptr,
+                                      sizeDeviceClassType(XIGestureClass, 0));
+                    *gout = *gin;
+                    out->classes[i] = (XIAnyClassInfo*)gout;
                     break;
                 }
         }
