@@ -1260,7 +1260,7 @@ static Bool
 copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                        XGenericEventCookie *out_cookie)
 {
-    int len, i;
+    int len, i, out_idx;
     XIDeviceChangedEvent *in, *out;
     XIAnyClassInfo *any;
     void *ptr;
@@ -1270,6 +1270,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
     len = sizeof(XIDeviceChangedEvent);
     len += in->num_classes * sizeof(XIAnyClassInfo*);
 
+    out_idx = 0;
     for (i = 0; i < in->num_classes; i++)
     {
         any = in->classes[i];
@@ -1336,7 +1337,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
 
                     bout->labels = next_block(&ptr, labels_size);
                     memcpy(bout->labels, bin->labels, bout->num_buttons * sizeof(Atom));
-                    out->classes[i] = (XIAnyClassInfo*)bout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)bout;
                     break;
                 }
             case XIKeyClass:
@@ -1352,7 +1353,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                     *kout = *kin;
                     kout->keycodes = next_block(&ptr, keycodes_size);
                     memcpy(kout->keycodes, kin->keycodes, kout->num_keycodes * sizeof(int));
-                    out->classes[i] = (XIAnyClassInfo*)kout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)kout;
                     break;
                 }
             case XIValuatorClass:
@@ -1372,7 +1373,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                     sout = next_block(&ptr,
                                       sizeDeviceClassType(XIScrollClass, 0));
                     *sout = *sin;
-                    out->classes[i] = (XIAnyClassInfo*)sout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)sout;
                     break;
                 }
             case XITouchClass:
@@ -1382,7 +1383,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                     tout = next_block(&ptr,
                                       sizeDeviceClassType(XITouchClass, 0));
                     *tout = *tin;
-                    out->classes[i] = (XIAnyClassInfo*)tout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)tout;
                     break;
                 }
             case XIGestureClass:
@@ -1392,7 +1393,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                     gout = next_block(&ptr,
                                       sizeDeviceClassType(XIGestureClass, 0));
                     *gout = *gin;
-                    out->classes[i] = (XIAnyClassInfo*)gout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)gout;
                     break;
                 }
         }
