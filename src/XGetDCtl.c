@@ -248,7 +248,7 @@ XGetDeviceControl(
             XDeviceEnableState *E = (XDeviceEnableState *) Device;
 
             E->control = DEVICE_ENABLE;
-            E->length = sizeof(E);
+            E->length = sizeof(XDeviceEnableState);
             E->enable = e->enable;
 
             break;
