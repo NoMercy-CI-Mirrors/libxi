@@ -152,6 +152,13 @@ XGetDeviceControl(
             size = sizeof(XDeviceCoreState);
             break;
         }
+        case DEVICE_ENABLE:
+        {
+            if (sizeof(xDeviceEnableState) > nbytes)
+                goto out;
+            size = sizeof(XDeviceEnableState);
+            break;
+        }
 	default:
 	    if (d->length > nbytes)
 		goto out;
