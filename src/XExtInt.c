@@ -1363,7 +1363,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                     vout = next_block(&ptr,
                                       sizeDeviceClassType(XIValuatorClass, 0));
                     *vout = *vin;
-                    out->classes[i] = (XIAnyClassInfo*)vout;
+                    out->classes[out_idx++] = (XIAnyClassInfo*)vout;
                     break;
                 }
             case XIScrollClass:
