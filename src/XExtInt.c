@@ -1398,6 +1398,7 @@ copyDeviceChangedEvent(XGenericEventCookie *in_cookie,
                 }
         }
     }
+    out->num_classes = out_idx;
 
     return True;
 }
