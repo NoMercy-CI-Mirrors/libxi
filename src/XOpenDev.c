@@ -99,7 +99,7 @@ XOpenDevice(
     if (dev) {
 	int dlen;	/* data length */
 
-	dev->device_id = req->deviceid;
+	dev->device_id = id;
 	dev->num_classes = rep.num_classes;
 	dev->classes = (XInputClassInfo *) ((char *)dev + sizeof(XDevice));
 	dlen = rep.num_classes * sizeof(xInputClassInfo);
